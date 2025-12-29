@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Board - Pet Dock Edition</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap');
+
+:root {
+  --primary: #FF8E53;
+  --secondary: #FF6B6B;
+  --accent: #4ECDC4;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  /* MÀU CHO Ô BÊN TRONG */
+  --cell-bg: #FFE0B2; /* Màu vàng cam nhạt đậm đà hơn trắng */
+  --cell-border: #E65100; /* Màu viền cam đậm */
+}
+
+body {
+  font-family: 'Quicksand', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-image: url("https://tripi.vn/blog/vi/doi-song/nhung-buc-anh-dong-dang-yeu-va-tuyet-dep-tripi");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  padding-bottom: 120px;
+}
+
+.main-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border-radius: 30px;
+  padding: 30px;
+  margin-top: 40px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#grid {
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  background: rgba(0,0,0,0.1); /* Nền lưới đậm hơn để làm nổi các ô */
+  border-radius: 20px;
+}
+
+/* THAY ĐỔI MÀU Ô Ở ĐÂY */
+.cell {
+  width: 75px;
+  height: 95px;
+  background: var(--cell-bg); /* Đổi từ trắng sang màu đậm hơn */
+  border-radius: 12px;
+  cursor: pointer;
+  border: 4px solid var(--cell-border); /* Viền cực đậm */
+  box-shadow: 0 4px 0px rgba(0,0,0,0.1); /* Tạo hiệu ứng khối 3D */
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cell:hover {
+  background: #FFCC80;
+  transform: translateY(-2px);
+  border-color: #FB8C00;
+}
+
+.cell.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cell img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop { from { transform: scale(0.5); } to { transform: scale(1); } }
+
+/* CSS cho điều khiển và Dock giữ nguyên như cũ */
+.controls { display: flex; gap: 12px; margin-bottom: 20px; }
+.input-group { background: #fff; padding: 5px 15px; border-radius: 15px; display: flex; align-items: center; gap: 8px; font-weight: 700; border: 2px solid var(--cell-border); }
+input { width: 45px; border: 1px solid #ddd; text-align: center; }
+button { padding: 8px 18px; border-radius: 15px; cursor: pointer; font-weight: 700; background: #fff; border: 2px solid var(--primary); color: var(--primary); }
+.dock-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #fff; padding: 10px 25px; border-radius: 25px; display: flex; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border: 3px solid var(--cell-border); }
+.dock-container img { width: 50px; height: 65px; border-radius: 10px; transition: 0.3s; border: 2px solid #eee; }
+.dock-container img.selected { border-color: var(--accent); transform: scale(1.1); }
+</style>
+</head>
+
+<body>
+<div class="main-container">
+  <h2>DUYANHDEPTRAIS1</h2>
+  <div class="controls">
+    <div class="input-group">Hàng: <input id="rows" type="number" value="4"></div>
+    <div class="input-group">Cột: <input id="cols" type="number" value="6"></div>
+    <button onclick="createGrid()">Tạo bàn</button>
+    <button onclick="undo()">Quay lại</button>
+    <button onclick="clearGrid()">Xóa sạch</button>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<div class="dock-container" id="icons">
+  <img src="1.png" onclick="selectIcon(this, '1.png')">
+  <img src="2.png" onclick="selectIcon(this, '2.png')">
+  <img src="3.png" onclick="selectIcon(this, '3.png')">
+  <img src="4.png" onclick="selectIcon(this, '4.png')">
+  <img src="5.png" onclick="selectIcon(this, '5.png')">
+  <img src="6.png" onclick="selectIcon(this, '6.png')">
+  <img src="7.png" onclick="selectIcon(this, '7.png')">
+  <img src="8.png" onclick="selectIcon(this, '8.png')">
+  <img src="9.png" onclick="selectIcon(this, '9.png')">
+</div>
+
+<script>
+let currentIcon = '';
+let history = [];
+let lastCell = null;
+const grid = document.getElementById('grid');
+
+function selectIcon(img, icon) {
+  document.querySelectorAll('#icons img').forEach(i => i.classList.remove('selected'));
+  img.classList.add('selected');
+  currentIcon = icon;
+}
+
+function createGrid() {
+  const r = parseInt(document.getElementById('rows').value) || 1;
+  const c = parseInt(document.getElementById('cols').value) || 1;
+  grid.innerHTML = '';
+  grid.style.gridTemplateColumns = `repeat(${c}, 75px)`;
+  history = [];
+  lastCell = null;
+
+  for (let i = 0; i < r * c; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.onclick = () => {
+      if (!currentIcon || cell.classList.contains('hidden')) return;
+
+      history.push({ cell, prevHTML: cell.innerHTML, prevHidden: false, prevLastCell: lastCell });
+
+      cell.innerHTML = `<img src="${currentIcon}">`;
+      cell.dataset.icon = currentIcon;
+
+      if (lastCell && lastCell !== cell && lastCell.dataset.icon === cell.dataset.icon) {
+        setTimeout(() => {
+          cell.classList.add('hidden');
+          lastCell.classList.add('hidden');
+          lastCell = null;
+        }, 300);
+      } else {
+        lastCell = cell;
+      }
+    };
+    grid.appendChild(cell);
+  }
+}
+
+function undo() {
+  const last = history.pop();
+  if (last) {
+    last.cell.innerHTML = last.prevHTML;
+    last.cell.classList.remove('hidden');
+    lastCell = last.prevLastCell;
+  }
+}
+
+function clearGrid() {
+  if(confirm("Xóa hết bảng?")) createGrid();
+}
+createGrid();
+</script>
+</body>
+</html>
